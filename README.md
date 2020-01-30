@@ -1,4 +1,4 @@
-Target end Q1 2020
+target schedule end Q1 2020
 
 ## Manufacturing Execution System:  
 -completely written in Python  
