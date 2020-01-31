@@ -1,0 +1,10 @@
+{
+    "ip": "127.0.0.1",
+    "port": "4840",
+    "endpointurl": "/",
+    "uri": "urn:opcua:python:server",
+    "servername": "Python-OPC-UA",
+    "cert": "certs/cert.pem",
+    "key": "certs/key.pem",
+    "debug": true
+}
