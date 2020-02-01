@@ -9,4 +9,4 @@ target schedule Q1 2020
 -reintegration of faild orders into the queue   
 -...   
   
-### ERP -> PPS (MySQL-Server) -> MES (SQLite3 queue) -> one ore may PLC  
+### ERP -> PPS (MySQL-Server, slow network based) -> MES (SQLite3 queue, fast filebased and closer to shopfloor) -> one ore may PLC  
