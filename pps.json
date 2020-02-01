@@ -1,6 +1,8 @@
 {
     "type": "mysql",
     "ip": "127.0.0.1",
+    "user": "root",
+    "password": "",
     "dbname": "pps",
     "table": "orders"
 }

@@ -30,12 +30,15 @@ def user_manager(isession, username, password):
 OPC-UA-Methods
 """
 @uamethod
-def get_order(parent, id):
+def get_next_order(parent, id):
     global debug
     if debug:
         print(f"get order : {id}")
-    #sqlite stuff here:
-    #get next order from queue with highest prio
+
+    #get next order from queue
+    #return id an detals
+    #if empty return 0
+
     return  (
                 ua.Variant(id, ua.VariantType.Int64)
             )
@@ -45,9 +48,11 @@ def set_order_status(parent, id, status):
     global debug
     if debug:
         print(f"set order :{id} , {status}")
-    #sqlite stuff here:
-    #set order status
-    #if failure return id + false
+
+    #update pps dataset
+    #return id and error code (0=successful)
+    #if fail: queue the unsend datasets
+
     error_code = 0
     return  (
                 ua.Variant(id, ua.VariantType.Int64),
@@ -75,10 +80,15 @@ root_node = server.get_root_node()
 object_node = server.get_objects_node()
 server_node = server.get_server_node()
 
-methods_obj = server.nodes.objects.add_object(address_space, "Methods")
+status_obj = object_node.add_object(address_space, "Status")
+queue_obj = status_obj.add_object(address_space, "Queue")
+in_queue_size_node = queue_obj.add_variable(address_space, "size_in", ua.Variant(0, ua.VariantType.UInt64))
+out_queue_size_node = queue_obj.add_variable(address_space, "size_out", ua.Variant(0, ua.VariantType.UInt64))
+
+methods_obj = object_node.add_object(address_space, "Methods")
 get_order_node = methods_obj.add_method(    address_space, 
-                                            "get_order", 
-                                            get_order, 
+                                            "get_next_order", 
+                                            get_next_order, 
                                             [
                                                 #Input-Arguments:
                                                 ua.VariantType.Int64
@@ -108,16 +118,24 @@ set_order_node = methods_obj.add_method(    address_space,
 OPC-UA-VarUpdater
 """
 async def servicelevel_updater(servicelevel_node):
-    servicelevel_value = 0
+    value = 0
     while True:
         await asyncio.sleep(1)
-        if servicelevel_value < 200:
-            servicelevel_value = 250
-        servicelevel_dv = ua.DataValue(ua.Variant(servicelevel_value, ua.VariantType.Byte))
-        servicelevel_node.set_value(servicelevel_dv)
+        #no redundant servers!
+        if value < 200:
+            value = 250
+        servicelevel_node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.Byte)))
+
+async def in_queue_size_updater(in_queue_size_node):
+    value = 5
+    while True:
+        await asyncio.sleep(1)
+        in_queue_size_node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.UInt64)))
+
 
 loop = asyncio.get_event_loop()
 asyncio.ensure_future(servicelevel_updater(server.get_node("ns=0;i=2267")))
+asyncio.ensure_future(in_queue_size_updater(in_queue_size_node))
 
 """
 OPC-UA-Server Start
