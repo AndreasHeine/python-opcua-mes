@@ -1,3 +1,6 @@
 {
-    "path": "pps-data/pps.db"
+    "type": "mysql",
+    "ip": "127.0.0.1",
+    "dbname": "pps",
+    "table": "orders"
 }
