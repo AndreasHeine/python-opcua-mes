@@ -1,22 +1,22 @@
 try:
     from opcua import ua, uamethod, Server
     from opcua.server.user_manager import UserManager
-    import os, sys, json, sqlite3, time
+    import os, sys, json, sqlite3, time, random
     import asyncio
 except ImportError as e:
     print(e)
 
 project_folder = os.path.dirname(os.path.abspath(__file__))
 
-with open("config.json") as file:
+with open(os.path.join(project_folder, "config.json")) as file:
     config = json.load(file) 
 
 debug = config["debug"]
 
-with open("pps.json") as file:
+with open(os.path.join(project_folder, "pps.json")) as file:
     pps = json.load(file)
 
-with open("users.json") as file:
+with open(os.path.join(project_folder, "users.json")) as file:
     users_db = json.load(file)
 
 """
@@ -85,6 +85,9 @@ queue_obj = status_obj.add_object(address_space, "Queue")
 in_queue_size_node = queue_obj.add_variable(address_space, "size_in", ua.Variant(0, ua.VariantType.UInt64))
 out_queue_size_node = queue_obj.add_variable(address_space, "size_out", ua.Variant(0, ua.VariantType.UInt64))
 
+parameter_obj = object_node.add_object(address_space, "Parameter")
+random_node = parameter_obj.add_variable(address_space, "random", ua.Variant(0, ua.VariantType.UInt64))
+
 methods_obj = object_node.add_object(address_space, "Methods")
 get_order_node = methods_obj.add_method(    address_space, 
                                             "get_next_order", 
@@ -132,10 +135,16 @@ async def in_queue_size_updater(in_queue_size_node):
         await asyncio.sleep(1)
         in_queue_size_node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.UInt64)))
 
+async def random_updater(random_node):
+    while True:
+        await asyncio.sleep(random.randint(1,10))
+        random_node.set_value(ua.DataValue(ua.Variant(random.randint(1,100), ua.VariantType.UInt64)))
+
 
 loop = asyncio.get_event_loop()
 asyncio.ensure_future(servicelevel_updater(server.get_node("ns=0;i=2267")))
 asyncio.ensure_future(in_queue_size_updater(in_queue_size_node))
+asyncio.ensure_future(random_updater(random_node))
 
 """
 OPC-UA-Server Start
