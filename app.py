@@ -69,7 +69,7 @@ address_space = server.register_namespace(config["servername"] + config["endpoin
 server.set_application_uri(config["uri"])
 server.load_certificate(config["cert"])
 server.load_private_key(config["key"])
-server.set_security_policy([ua.SecurityPolicyType.Basic256Sha256_SignAndEncrypt])
+server.set_security_policy([ua.SecurityPolicyType.Basic256Sha256_SignAndEncrypt,ua.SecurityPolicyType.NoSecurity])
 server.set_security_IDs(["Username"])
 server.user_manager.set_user_manager(user_manager)
 
@@ -135,15 +135,22 @@ async def in_queue_size_updater(in_queue_size_node):
         await asyncio.sleep(1)
         in_queue_size_node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.UInt64)))
 
+async def out_queue_size_updater(out_queue_size_node):
+    value = 5
+    while True:
+        await asyncio.sleep(1)
+        out_queue_size_node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.UInt64)))
+
 async def random_updater(random_node):
     while True:
         await asyncio.sleep(random.randint(1,10))
-        random_node.set_value(ua.DataValue(ua.Variant(random.randint(1,100), ua.VariantType.UInt64)))
+        random_node.set_value(ua.DataValue(ua.Variant(random.randint(70,90), ua.VariantType.UInt64)))
 
 
 loop = asyncio.get_event_loop()
 asyncio.ensure_future(servicelevel_updater(server.get_node("ns=0;i=2267")))
 asyncio.ensure_future(in_queue_size_updater(in_queue_size_node))
+asyncio.ensure_future(out_queue_size_updater(out_queue_size_node))
 asyncio.ensure_future(random_updater(random_node))
 
 """
