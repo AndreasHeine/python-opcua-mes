@@ -40,7 +40,7 @@ mydb.commit()
 print("Table Created!")
 
 
-for i in range(1,100):
+for i in range(1,100000):
     r = random.randint(1,5000)
     mycursor.execute(
                     f"""

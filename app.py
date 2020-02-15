@@ -131,6 +131,7 @@ async def order_queue_updater(db, table, pps):
         await asyncio.sleep(0.01)
         #get pps database rows -> .fetchmany(queue_size)
         pps_table = pps["table"]
+        #reconntect if fail
         pps_db = mysql.connector.connect(
                                         host=pps["ip"],
                                         user=pps["user"],
@@ -138,6 +139,7 @@ async def order_queue_updater(db, table, pps):
                                         database=pps["dbname"]
                                         )
         pps_cursor = pps_db.cursor(buffered=True)
+        #maybe use yield
         try:
             pps_cursor.execute(
                 f"""
@@ -151,7 +153,6 @@ async def order_queue_updater(db, table, pps):
             print(f"Order-ID {row[0]} Status: {row[1]}")
         except:
             pass
-        await asyncio.sleep(0.01)
         try:
             order_id = str(row[0])
             pps_cursor.execute(
