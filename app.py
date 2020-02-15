@@ -20,13 +20,15 @@ Production Planing System: mySQL database
 with open(os.path.join(project_folder, "pps.json")) as file:
     pps = json.load(file)
 
-pps_db = mysql.connector.connect(
-  host=pps["ip"],
-  user=pps["user"],
-  passwd=pps["password"],
-  database=pps["dbname"]
-)
-pps_cursor = pps_db.cursor()
+# pps_table = pps["table"]
+# pps_db = mysql.connector.connect(
+#                                 host=pps["ip"],
+#                                 user=pps["user"],
+#                                 passwd=pps["password"],
+#                                 database=pps["dbname"]
+#                                 )
+# pps_cursor = pps_db.cursor()
+# pps_db.disconnect()
 
 """
 MES Order-Queue: SQLite3 database
@@ -42,7 +44,8 @@ order_cursor.execute(
                     status int
                     )
                     '''
-                    )     
+                    )
+order_db.commit()     
 
 """
 OPC-UA-Usermanager
@@ -61,7 +64,7 @@ OPC-UA-Methods
 def get_next_order(parent, id):
 
     #get next order from queue
-    #return id an detals
+    #return id and details
     #if empty return 0
 
     return  (
@@ -116,22 +119,56 @@ async def servicelevel_updater(servicelevel_node):
         #no redundant servers!
         if value < 200:
             value = 250
-        servicelevel_node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.Byte)))
+            servicelevel_node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.Byte)))
 
 async def random_updater(random_node):
     while True:
         await asyncio.sleep(random.randint(1,10))
         random_node.set_value(ua.DataValue(ua.Variant(random.randint(70,90), ua.VariantType.UInt64)))
 
-async def order_queue_updater(db, db_cursor, table):
+async def order_queue_updater(db, table, pps):
     while True:
-        await asyncio.sleep(0.001)
+        await asyncio.sleep(0.01)
+        #get pps database rows -> .fetchmany(queue_size)
+        pps_table = pps["table"]
+        pps_db = mysql.connector.connect(
+                                        host=pps["ip"],
+                                        user=pps["user"],
+                                        passwd=pps["password"],
+                                        database=pps["dbname"]
+                                        )
+        pps_cursor = pps_db.cursor(buffered=True)
+        try:
+            pps_cursor.execute(
+                f"""
+                SELECT * FROM {pps_table}
+                """
+            )
+            row = pps_cursor.fetchone() #row -> set
+            #write/update mes database
+            
+            #finaly
+            print(f"Order-ID {row[0]} Status: {row[1]}")
+        except:
+            pass
+        await asyncio.sleep(0.01)
+        try:
+            order_id = str(row[0])
+            pps_cursor.execute(
+                f"""
+                DELETE FROM {pps_table} WHERE order_id = {order_id}
+                """
+            )
+            pps_db.commit()
+        except:
+            pass
+        pps_db.disconnect()
         pass
             
 loop = asyncio.get_event_loop()
 asyncio.ensure_future(servicelevel_updater(server.get_node("ns=0;i=2267")))
 asyncio.ensure_future(random_updater(random_node))
-asyncio.ensure_future(order_queue_updater(order_db, order_cursor, order_table))
+asyncio.ensure_future(order_queue_updater(order_db, order_table, pps))
 
 """
 OPC-UA-Server Start
