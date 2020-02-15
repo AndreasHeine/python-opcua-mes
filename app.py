@@ -3,6 +3,7 @@ try:
     from opcua.server.user_manager import UserManager
     import os, sys, json, sqlite3, time, random
     import asyncio
+    import mysql.connector
 except ImportError as e:
     print(e)
 
@@ -13,15 +14,42 @@ with open(os.path.join(project_folder, "config.json")) as file:
 
 debug = config["debug"]
 
+"""
+Production Planing System: mySQL database
+"""
 with open(os.path.join(project_folder, "pps.json")) as file:
     pps = json.load(file)
 
-with open(os.path.join(project_folder, "users.json")) as file:
-    users_db = json.load(file)
+pps_db = mysql.connector.connect(
+  host=pps["ip"],
+  user=pps["user"],
+  passwd=pps["password"],
+  database=pps["dbname"]
+)
+pps_cursor = pps_db.cursor()
+
+"""
+MES Order-Queue: SQLite3 database
+"""
+order_db = sqlite3.connect(':memory:')
+order_cursor = order_db.cursor()
+order_table = "order_queue"
+order_cursor.execute(
+                    f'''
+                    CREATE TABLE {order_table}
+                    (
+                    order_id int,
+                    status int
+                    )
+                    '''
+                    )     
 
 """
 OPC-UA-Usermanager
 """
+with open(os.path.join(project_folder, "users.json")) as file:
+    users_db = json.load(file)
+
 def user_manager(isession, username, password):
     isession.user = UserManager.User
     return username in users_db and password == users_db[username]
@@ -31,9 +59,6 @@ OPC-UA-Methods
 """
 @uamethod
 def get_next_order(parent, id):
-    global debug
-    if debug:
-        print(f"get order : {id}")
 
     #get next order from queue
     #return id an detals
@@ -41,22 +66,6 @@ def get_next_order(parent, id):
 
     return  (
                 ua.Variant(id, ua.VariantType.Int64)
-            )
-
-@uamethod
-def set_order_status(parent, id, status):
-    global debug
-    if debug:
-        print(f"set order :{id} , {status}")
-
-    #update pps dataset
-    #return id and error code (0=successful)
-    #if fail: queue the unsend datasets
-
-    error_code = 0
-    return  (
-                ua.Variant(id, ua.VariantType.Int64),
-                ua.Variant(error_code, ua.VariantType.Int64)
             )
 
 """
@@ -80,11 +89,6 @@ root_node = server.get_root_node()
 object_node = server.get_objects_node()
 server_node = server.get_server_node()
 
-status_obj = object_node.add_object(address_space, "Status")
-queue_obj = status_obj.add_object(address_space, "Queue")
-in_queue_size_node = queue_obj.add_variable(address_space, "size_in", ua.Variant(0, ua.VariantType.UInt64))
-out_queue_size_node = queue_obj.add_variable(address_space, "size_out", ua.Variant(0, ua.VariantType.UInt64))
-
 parameter_obj = object_node.add_object(address_space, "Parameter")
 random_node = parameter_obj.add_variable(address_space, "random", ua.Variant(0, ua.VariantType.UInt64))
 
@@ -102,21 +106,6 @@ get_order_node = methods_obj.add_method(    address_space,
                                             ]
                                         )
 
-set_order_node = methods_obj.add_method(    address_space, 
-                                            "set_order_status", 
-                                            set_order_status, 
-                                            [
-                                                #Input-Arguments:
-                                                ua.VariantType.Int64,
-                                                ua.VariantType.Int64,
-                                            ], 
-                                            [
-                                                #Output-Arguments:
-                                                ua.VariantType.Int64,
-                                                ua.VariantType.Int64,
-                                            ]
-                                        )
-
 """
 OPC-UA-VarUpdater
 """
@@ -129,35 +118,25 @@ async def servicelevel_updater(servicelevel_node):
             value = 250
         servicelevel_node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.Byte)))
 
-async def in_queue_size_updater(in_queue_size_node):
-    value = 5
-    while True:
-        await asyncio.sleep(1)
-        in_queue_size_node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.UInt64)))
-
-async def out_queue_size_updater(out_queue_size_node):
-    value = 5
-    while True:
-        await asyncio.sleep(1)
-        out_queue_size_node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.UInt64)))
-
 async def random_updater(random_node):
     while True:
         await asyncio.sleep(random.randint(1,10))
         random_node.set_value(ua.DataValue(ua.Variant(random.randint(70,90), ua.VariantType.UInt64)))
 
-
+async def order_queue_updater(db, db_cursor, table):
+    while True:
+        await asyncio.sleep(0.001)
+        pass
+            
 loop = asyncio.get_event_loop()
 asyncio.ensure_future(servicelevel_updater(server.get_node("ns=0;i=2267")))
-asyncio.ensure_future(in_queue_size_updater(in_queue_size_node))
-asyncio.ensure_future(out_queue_size_updater(out_queue_size_node))
 asyncio.ensure_future(random_updater(random_node))
+asyncio.ensure_future(order_queue_updater(order_db, order_cursor, order_table))
 
 """
 OPC-UA-Server Start
 """
 if __name__ == "__main__":
-    print(f"Debug: { debug }")
     try:
         server.start()
         loop.run_forever()            
