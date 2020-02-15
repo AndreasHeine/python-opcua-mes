@@ -1,6 +1,7 @@
 OPC-UA-Test
 ===========
 
-### Test OPC UA Client
+### Produktinfo
 
-Simple Node-Red OPC UA Client vor test and visualisation purposes
+Dies ist die Datei README.md Ihres Projekts. Es hilft den Benutzern zu verstehen, was Ihr
+Projekt macht, wie man es verwendet und alles andere, was sie vielleicht wissen müssen.
