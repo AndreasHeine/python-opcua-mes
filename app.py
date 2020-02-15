@@ -148,6 +148,8 @@ async def order_queue_updater(db, table, pps):
             )
             row = pps_cursor.fetchone() #row -> set
             #write/update mes database
+            #insert and commit!
+            #if faile roleback pps
             
             #finaly
             print(f"Order-ID {row[0]} Status: {row[1]}")
