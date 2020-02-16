@@ -128,7 +128,7 @@ async def random_updater(random_node):
 
 async def order_queue_updater(db, table, pps):
     while True:
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.1)
         #get pps database rows -> .fetchmany(queue_size)
         pps_table = pps["table"]
         #reconntect if fail
@@ -140,22 +140,20 @@ async def order_queue_updater(db, table, pps):
                                         )
         pps_cursor = pps_db.cursor(buffered=True)
         #maybe use yield
-        try:
-            pps_cursor.execute(
-                f"""
-                SELECT * FROM {pps_table}
-                """
-            )
-            row = pps_cursor.fetchone() #row -> set
-            #write/update mes database
-            #insert and commit!
-            #if faile roleback pps
-            
-            #finaly
+        pps_cursor.execute(
+            f"""
+            SELECT * FROM {pps_table}
+            """
+        )
+        row = pps_cursor.fetchone() #row -> set
+        #print(row)
+        #write/update mes database
+        #insert and commit!
+        #if faile roleback pps
+        
+        #finaly
+        if row != None:
             print(f"Order-ID {row[0]} Status: {row[1]}")
-        except:
-            pass
-        try:
             order_id = str(row[0])
             pps_cursor.execute(
                 f"""
@@ -163,10 +161,8 @@ async def order_queue_updater(db, table, pps):
                 """
             )
             pps_db.commit()
-        except:
-            pass
         pps_db.disconnect()
-        pass
+
             
 loop = asyncio.get_event_loop()
 asyncio.ensure_future(servicelevel_updater(server.get_node("ns=0;i=2267")))
