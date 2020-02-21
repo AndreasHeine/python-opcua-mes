@@ -12,7 +12,11 @@ mydb = mysql.connector.connect(
 
 mycursor = mydb.cursor()
 
-mycursor.execute("SELECT * FROM orders")
+mycursor.execute(
+                """
+                SELECT * FROM orders
+                """
+                )
 
 myresult = mycursor.fetchall()
 

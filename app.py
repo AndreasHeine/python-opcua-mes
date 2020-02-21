@@ -157,7 +157,8 @@ async def order_queue_updater(db, table, pps):
             order_id = str(row[0])
             pps_cursor.execute(
                 f"""
-                DELETE FROM {pps_table} WHERE order_id = {order_id}
+                DELETE FROM {pps_table} 
+                WHERE order_id = {order_id}
                 """
             )
             pps_db.commit()
