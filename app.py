@@ -152,7 +152,7 @@ async def order_queue_updater(db, table, pps):
         #if faile roleback pps
         
         #finaly
-        if row != None:
+        if row:
             print(f"Order-ID {row[0]} Status: {row[1]}")
             order_id = str(row[0])
             pps_cursor.execute(
