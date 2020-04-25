@@ -50,8 +50,8 @@ def get_next_order(parent, id):
         passwd=pps["password"],
         database=pps["dbname"]
     )
-    cursor = db.cursor()
-    cursor.execute(f"""SELECT * FROM {pps["table"]} WHERE order_id = %s""", (id,)) #always use injection safe querys!!!
+    cursor = db.cursor(prepared=True)
+    cursor.execute(f"""SELECT * FROM {pps["table"]} WHERE order_id = %s""", (id, )) #always use injection safe querys!!!
     row = cursor.fetchone()
     cursor.close()
     db.close()
