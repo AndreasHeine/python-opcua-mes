@@ -35,15 +35,17 @@ OPC-UA-Methods
 """
 @uamethod
 def get_next_order(parent, id):
-    mydb = mysql.connector.connect(
+    db = mysql.connector.connect(
         host=pps["ip"],
         user=pps["user"],
         passwd=pps["password"],
         database=pps["dbname"]
     )
-    mycursor = mydb.cursor()
-    mycursor.execute(f"""SELECT * FROM { pps["table" ]} WHERE order_id = { id }""")
-    row = mycursor.fetchone()
+    cursor = db.cursor()
+    cursor.execute(f"""SELECT * FROM { pps["table" ]} WHERE order_id = { id }""")
+    row = cursor.fetchone()
+    cursor.close()
+    db.close()
     if row:
         id=id
         status=row[1]
