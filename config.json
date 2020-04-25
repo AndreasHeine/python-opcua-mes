@@ -4,7 +4,6 @@
     "endpointurl": "/",
     "uri": "urn:opcua:python:server",
     "servername": "Python-OPC-UA",
-    "cert": "certs/cert.pem",
-    "key": "certs/key.pem",
+    "sign&encrypt": false,
     "debug": true
 }

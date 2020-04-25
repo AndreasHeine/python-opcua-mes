@@ -14,6 +14,13 @@ with open(os.path.join(project_folder, "config.json")) as file:
 
 debug = config["debug"]
 
+if config["sign&encrypt"]:
+    try:
+        os.system("openssl genrsa -out key.pem 2048")
+        os.system("openssl req -x509 -days 365 -new -out cert.pem -key key.pem -config ssl.conf")
+    except:
+        raise RuntimeError("OPEN SSL Requiered!")
+
 """
 Production Planing System: mySQL database
 """
@@ -54,7 +61,7 @@ def get_next_order(parent, id):
         id=0
         status=0
     if debug:
-        print("Mmethod-Call -> Req-ID: " + str(id) + " Dataset: " + str(row))
+        print("Method-Call -> Req-ID: " + str(id) + " Dataset: " + str(row))
     return  (
                 ua.Variant(id, ua.VariantType.Int64),
                 ua.Variant(status, ua.VariantType.Int64)
@@ -69,9 +76,12 @@ server.set_endpoint("opc.tcp://" + config["ip"] + ":" + config["port"])
 server.set_server_name(config["servername"])
 address_space = server.register_namespace(config["servername"] + config["endpointurl"])
 server.set_application_uri(config["uri"])
-server.load_certificate(config["cert"])
-server.load_private_key(config["key"])
-server.set_security_policy([ua.SecurityPolicyType.Basic256Sha256_SignAndEncrypt])
+if config["sign&encrypt"]:
+    server.load_certificate("cert.pem")
+    server.load_private_key("key.pem")
+    server.set_security_policy([ua.SecurityPolicyType.Basic256Sha256_SignAndEncrypt])
+else:
+    server.set_security_policy([ua.SecurityPolicyType.NoSecurity])
 server.set_security_IDs(["Username"])
 server.user_manager.set_user_manager(user_manager)
 
