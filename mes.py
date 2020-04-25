@@ -15,6 +15,8 @@ with open(os.path.join(project_folder, "config.json")) as file:
 debug = config["debug"]
 
 if config["sign&encrypt"]:
+    #pyOpenSSL migth be a better way... for now i use openssl
+    #i should check the cert's expiering date. if its to old i will regenerate it 
     try:
         os.system("openssl genrsa -out key.pem 2048")
         os.system("openssl req -x509 -days 365 -new -out cert.pem -key key.pem -config ssl.conf")
@@ -49,7 +51,7 @@ def get_next_order(parent, id):
         database=pps["dbname"]
     )
     cursor = db.cursor()
-    cursor.execute(f"""SELECT * FROM {pps["table"]} WHERE order_id = %s""", (id,)) #if method input is type string make sure you use injection safe querys!!!
+    cursor.execute(f"""SELECT * FROM {pps["table"]} WHERE order_id = %s""", (id,)) #always use injection safe querys!!!
     row = cursor.fetchone()
     cursor.close()
     db.close()
@@ -101,7 +103,7 @@ get_order_node = methods_obj.add_method(    address_space,
                                             get_next_order, 
                                             [
                                                 #Input-Arguments:
-                                                ua.VariantType.Int64
+                                                ua.VariantType.Int64    #ID
                                                 #....
                                             ], 
                                             [
@@ -115,6 +117,9 @@ get_order_node = methods_obj.add_method(    address_space,
 """
 OPC-UA-VarUpdater
 """
+
+#for me async eventloop works just fine, you could also use threads for that!
+
 async def servicelevel_updater(servicelevel_node):
     value = 0
     while True:
