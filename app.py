@@ -1,7 +1,7 @@
 try:
     from opcua import ua, uamethod, Server
     from opcua.server.user_manager import UserManager
-    import os, sys, json, sqlite3, time, random
+    import os, sys, json, time, random
     import asyncio
     import mysql.connector
 except ImportError as e:
@@ -20,33 +20,6 @@ Production Planing System: mySQL database
 with open(os.path.join(project_folder, "pps.json")) as file:
     pps = json.load(file)
 
-# pps_table = pps["table"]
-# pps_db = mysql.connector.connect(
-#                                 host=pps["ip"],
-#                                 user=pps["user"],
-#                                 passwd=pps["password"],
-#                                 database=pps["dbname"]
-#                                 )
-# pps_cursor = pps_db.cursor()
-# pps_db.disconnect()
-
-"""
-MES Order-Queue: SQLite3 database
-"""
-order_db = sqlite3.connect(':memory:')
-order_cursor = order_db.cursor()
-order_table = "order_queue"
-order_cursor.execute(
-                    f'''
-                    CREATE TABLE {order_table}
-                    (
-                    order_id int,
-                    status int
-                    )
-                    '''
-                    )
-order_db.commit()     
-
 """
 OPC-UA-Usermanager
 """
@@ -62,13 +35,26 @@ OPC-UA-Methods
 """
 @uamethod
 def get_next_order(parent, id):
-
-    #get next order from queue
-    #return id and details
-    #if empty return 0
-
+    mydb = mysql.connector.connect(
+        host=pps["ip"],
+        user=pps["user"],
+        passwd=pps["password"],
+        database=pps["dbname"]
+    )
+    mycursor = mydb.cursor()
+    mycursor.execute(f"""SELECT * FROM { pps["table" ]} WHERE order_id = { id }""")
+    row = mycursor.fetchone()
+    if row:
+        id=id
+        status=row[1]
+        #....
+    else:
+        id=0
+        status=0
     return  (
-                ua.Variant(id, ua.VariantType.Int64)
+                ua.Variant(id, ua.VariantType.Int64),
+                ua.Variant(status, ua.VariantType.Int64)
+                #....
             )
 
 """
@@ -81,7 +67,7 @@ address_space = server.register_namespace(config["servername"] + config["endpoin
 server.set_application_uri(config["uri"])
 server.load_certificate(config["cert"])
 server.load_private_key(config["key"])
-server.set_security_policy([ua.SecurityPolicyType.Basic256Sha256_SignAndEncrypt,ua.SecurityPolicyType.NoSecurity])
+server.set_security_policy([ua.SecurityPolicyType.Basic256Sha256_SignAndEncrypt])
 server.set_security_IDs(["Username"])
 server.user_manager.set_user_manager(user_manager)
 
@@ -102,10 +88,13 @@ get_order_node = methods_obj.add_method(    address_space,
                                             [
                                                 #Input-Arguments:
                                                 ua.VariantType.Int64
+                                                #....
                                             ], 
                                             [
                                                 #Output-Arguments:
-                                                ua.VariantType.Int64
+                                                ua.VariantType.Int64,   #ID
+                                                ua.VariantType.Int64    #STATUS
+                                                #....
                                             ]
                                         )
 
@@ -125,50 +114,10 @@ async def random_updater(random_node):
     while True:
         await asyncio.sleep(random.randint(1,10))
         random_node.set_value(ua.DataValue(ua.Variant(random.randint(70,90), ua.VariantType.UInt64)))
-
-async def order_queue_updater(db, table, pps):
-    while True:
-        await asyncio.sleep(0.1)
-        #get pps database rows -> .fetchmany(queue_size)
-        pps_table = pps["table"]
-        #reconntect if fail
-        pps_db = mysql.connector.connect(
-                                        host=pps["ip"],
-                                        user=pps["user"],
-                                        passwd=pps["password"],
-                                        database=pps["dbname"]
-                                        )
-        pps_cursor = pps_db.cursor(buffered=True)
-        #maybe use yield
-        pps_cursor.execute(
-            f"""
-            SELECT * FROM {pps_table}
-            """
-        )
-        row = pps_cursor.fetchone() #row -> set
-        #print(row)
-        #write/update mes database
-        #insert and commit!
-        #if faile roleback pps
-        
-        #finaly
-        if row:
-            print(f"Order-ID {row[0]} Status: {row[1]}")
-            order_id = str(row[0])
-            pps_cursor.execute(
-                f"""
-                DELETE FROM {pps_table} 
-                WHERE order_id = {order_id}
-                """
-            )
-            pps_db.commit()
-        pps_db.disconnect()
-
             
 loop = asyncio.get_event_loop()
 asyncio.ensure_future(servicelevel_updater(server.get_node("ns=0;i=2267")))
 asyncio.ensure_future(random_updater(random_node))
-asyncio.ensure_future(order_queue_updater(order_db, order_table, pps))
 
 """
 OPC-UA-Server Start
