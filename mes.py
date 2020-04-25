@@ -42,7 +42,7 @@ def get_next_order(parent, id):
         database=pps["dbname"]
     )
     cursor = db.cursor()
-    cursor.execute(f"""SELECT * FROM { pps["table" ]} WHERE order_id = { id }""")
+    cursor.execute(f"""SELECT * FROM {pps["table"]} WHERE order_id = %s""", (id,)) #if method input is type string make sure you use injection safe querys!!!
     row = cursor.fetchone()
     cursor.close()
     db.close()
@@ -53,6 +53,8 @@ def get_next_order(parent, id):
     else:
         id=0
         status=0
+    if debug:
+        print("Mmethod-Call -> Req-ID: " + str(id) + " Dataset: " + str(row))
     return  (
                 ua.Variant(id, ua.VariantType.Int64),
                 ua.Variant(status, ua.VariantType.Int64)
