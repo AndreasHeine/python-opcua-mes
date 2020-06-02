@@ -21,7 +21,7 @@ if config["sign&encrypt"]:
         os.system("openssl genrsa -out key.pem 2048")
         os.system("openssl req -x509 -days 365 -new -out cert.pem -key key.pem -config ssl.conf")
     except:
-        raise RuntimeError("OPEN SSL Requiered!")
+        raise RuntimeError("openssl requiered!")
 
 """
 Production Planing System: mySQL database
