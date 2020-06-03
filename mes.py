@@ -76,7 +76,7 @@ OPC-UA-Server Setup
 server = Server()
 server.set_endpoint("opc.tcp://" + config["ip"] + ":" + config["port"])
 server.set_server_name(config["servername"])
-address_space = server.register_namespace(config["servername"] + config["endpointurl"])
+address_space = server.register_namespace("http://andreas-heine.net/UA")
 server.set_application_uri(config["uri"])
 if config["sign&encrypt"]:
     server.load_certificate("cert.pem")
